@@ -10,6 +10,9 @@ backups/
 # Claude Code harness state
 .claude/
 
+# Playwright MCP scratch (used only to render the README banner screenshot)
+.playwright-mcp/
+
 # OS / editor noise
 Thumbs.db
 .DS_Store

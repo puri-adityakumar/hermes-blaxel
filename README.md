@@ -1,13 +1,26 @@
-# Hermes-on-Blaxel
+# Hermes on Blaxel
+
+![Hermes x Blaxel](assets/banner.png)
 
 Run your own [Hermes Agent](https://github.com/NousResearch/hermes-agent) as a **Telegram bot** (plus an
-optional **web dashboard**) on a [Blaxel](https://blaxel.ai) cloud sandbox. Use **any model provider**
-Hermes supports (Z.AI/GLM, Anthropic, OpenAI, Gemini, Kimi, …). Choose **always-on** (instant) or
-**scale-to-zero** (sleeps when idle, wakes on a message - ~nothing at rest).
+optional **web dashboard**) on a [Blaxel](https://blaxel.ai) cloud sandbox. Clone the repo, run one wizard,
+answer a few prompts, and you have a live agent. Bring **any model provider** and choose **always-on** or
+**scale-to-zero**.
+
+## Why
+
+- **One-command setup.** A cross-platform wizard (Windows / macOS / Linux) generates secrets, deploys the
+  sandbox, wires the Telegram webhook, and prints your bot handle + dashboard link.
+- **Any provider.** Z.AI / GLM, Anthropic, OpenAI, Gemini, Kimi, and more. Or pick "configure later" and
+  set it up from the dashboard. Not tied to one vendor.
+- **Cheap or instant, your call.** `scale-to-zero` sleeps when idle and wakes on a message (~nothing at
+  rest); `always-on` keeps it warm for instant replies.
+- **Self-healing.** A supervision loop relaunches the gateway/dashboard after sleep or a crash.
+- **Optional web dashboard** with a username/password login: in-browser chat, sessions, cost, config.
 
 ## Quickstart
 
-**1 - Install the Blaxel CLI and log in**
+**1. Install the Blaxel CLI and log in**
 
 ```powershell
 # Windows (PowerShell)
@@ -20,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/blaxel-ai/toolkit/main/install.sh |
 bl login
 ```
 
-**2 - Clone the repo and run the wizard**
+**2. Clone the repo and run the wizard**
 
 ```powershell
 # Windows
@@ -32,13 +45,20 @@ chmod +x scripts/*.sh
 ./scripts/setup.sh
 ```
 
-The wizard walks you through: **model provider + API key** (pick from a menu, or "configure later in
-Hermes"), your **Telegram bot token** (@BotFather) and **user id** (@userinfobot), the **web dashboard**,
-and the **run mode**. It generates all other secrets, deploys, wires up the webhook, and prints your bot
-handle + dashboard link. That's it.
+The wizard asks for: your **model provider + key** (or "configure later"), your **Telegram bot token**
+(@BotFather) and **user id** (@userinfobot), the **dashboard** (optional), and the **run mode**. Then it
+deploys and prints everything.
 
-> **Bring-your-own provider:** pick "configure later" and set the provider/model/keys after deploy via the
-> **dashboard** or `bl connect sandbox <name> → hermes setup model` - Hermes' own multi-provider wizard.
+> **Bring your own provider:** choose "configure later" in the wizard, then set the provider/model/keys
+> after deploy via the **dashboard** or `bl connect sandbox <name>` then `hermes setup model` (Hermes' own
+> multi-provider wizard).
+
+## Deployment modes
+
+| Mode | Behavior | Cost |
+|---|---|---|
+| **always-on** | Box runs 24/7, instant replies | continuous |
+| **scale-to-zero** | Sleeps after ~15 min idle, wakes on a message (~1 min cold start) | ~zero when idle |
 
 ## Day-to-day
 
@@ -49,9 +69,14 @@ handle + dashboard link. That's it.
 | Back up chat history/memories | `./scripts/backup-data.ps1` | `./scripts/backup-data.sh` |
 | Restore after a rebuild | `./scripts/restore-data.ps1 -InFile backups\<file>.tar.gz` | `./scripts/restore-data.sh backups/<file>.tar.gz` |
 
-⚠️ A full rebuild resets the box's runtime data (free tier has no persistent disk) - back up first if you
-care about it. See **CLAUDE.md** for architecture, the Blaxel CLI cheat-sheet, and hard-won lessons.
+> A full rebuild resets the box's runtime data (the free tier has no persistent disk), so back up first if
+> you care about chat history. See **CLAUDE.md** for architecture, the Blaxel CLI cheat-sheet, and lessons.
 
 ## Requirements
+
 - A Blaxel account (free tier works) · an API key for any provider Hermes supports · a Telegram bot token.
-- Windows/PowerShell for the scripts (the sandbox itself is Linux in the cloud).
+- Windows (PowerShell) or macOS/Linux (bash + curl + openssl). The sandbox itself is Linux, in the cloud.
+
+## License
+
+[MIT](LICENSE).
