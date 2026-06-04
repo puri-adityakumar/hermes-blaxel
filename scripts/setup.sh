@@ -10,13 +10,14 @@ BL="$(command -v bl || true)"
 # Colors (ANSI); disabled when output is not a terminal.
 if [ -t 2 ]; then
   C=$'\033[36m'; B=$'\033[1m'; D=$'\033[2m'; Y=$'\033[33m'; G=$'\033[32m'; R=$'\033[0m'
-else C=''; B=''; D=''; Y=''; G=''; R=''; fi
+  GREEN=$'\033[38;5;28m'; ORANGE=$'\033[38;5;208m'
+else C=''; B=''; D=''; Y=''; G=''; R=''; GREEN=''; ORANGE=''; fi
 
 hex()  { openssl rand -hex "$1"; }
 rule() { printf '=%.0s' $(seq 1 "$1"); }
 
 banner() {
-  printf '%s%s\n' "$B" "$C" >&2
+  printf '%s%s\n' "$B" "$GREEN" >&2
   cat >&2 <<'ART'
     _   _ _____ ____  __  __ _____ ____
    | | | | ____|  _ \|  \/  | ____/ ___|
@@ -24,10 +25,11 @@ banner() {
    |  _  | |___|  _ <| |  | | |___ ___) |
    |_| |_|_____|_| \_\_|  |_|_____|____/
 ART
+  printf '%s                 x  %s%sBLAXEL%s\n' "$R" "$B" "$ORANGE" "$R" >&2
   local w=52
-  printf '   +%s+\n'    "$(rule $w)"                                            >&2
-  printf '   |%-*s|\n'  "$w" "  self-hosted AI agent  .  Telegram + web on Blaxel" >&2
-  printf '   +%s+\n%s'  "$(rule $w)" "$R"                                        >&2
+  printf '%s   +%s+\n'   "$C" "$(rule $w)"                                       >&2
+  printf '   |%-*s|\n'   "$w" "  self-hosted AI agent  .  Telegram + web on Blaxel" >&2
+  printf '   +%s+\n%s'   "$(rule $w)" "$R"                                       >&2
 }
 
 step() { printf '\n%s%s[%s]%s %s%s%s\n' "$B" "$C" "$1" "$R" "$B" "$2" "$R" >&2; }

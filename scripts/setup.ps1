@@ -12,6 +12,7 @@ function Hex([int]$n) {
   -join ($b | ForEach-Object { $_.ToString('x2') })
 }
 function Banner {
+  $e=[char]27; $grn="$e[38;5;28m"; $org="$e[38;5;208m"; $cyn="$e[36m"; $rst="$e[0m"
 $art = @'
     _   _ _____ ____  __  __ _____ ____
    | | | | ____|  _ \|  \/  | ____/ ___|
@@ -19,11 +20,12 @@ $art = @'
    |  _  | |___|  _ <| |  | | |___ ___) |
    |_| |_|_____|_| \_\_|  |_|_____|____/
 '@
-  Write-Host $art -ForegroundColor Cyan
+  Write-Host ($grn + $art + $rst)
+  Write-Host ("                 x  {0}BLAXEL{1}" -f $org, $rst)
   $w = 52; $bar = '=' * $w
-  Write-Host ("   +{0}+" -f $bar) -ForegroundColor Cyan
-  Write-Host ("   |{0,-$w}|" -f "  self-hosted AI agent  .  Telegram + web on Blaxel") -ForegroundColor Cyan
-  Write-Host ("   +{0}+" -f $bar) -ForegroundColor Cyan
+  Write-Host ("$cyn   +{0}+" -f $bar)
+  Write-Host ("   |{0,-$w}|" -f "  self-hosted AI agent  .  Telegram + web on Blaxel")
+  Write-Host ("   +{0}+$rst" -f $bar)
   Write-Host ""
 }
 function Step($n, $t) { Write-Host "`n[$n] $t" -ForegroundColor Cyan }
