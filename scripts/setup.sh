@@ -1,42 +1,69 @@
 #!/usr/bin/env bash
-# Hermes-on-Blaxel setup wizard - Mac/Linux. Mirrors setup.ps1.
-# Clone → ./scripts/setup.sh → answer a few prompts → live Telegram bot (+ optional dashboard).
+# Hermes-on-Blaxel setup wizard (Mac/Linux). Mirrors setup.ps1.
+# Clone, run this, answer a few prompts, get a live Telegram bot (+ optional dashboard).
 set -uo pipefail
-
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPTDIR/.." && pwd)"
 ENVF="$ROOT/.env"
 BL="$(command -v bl || true)"
 
-hex() { openssl rand -hex "$1"; }
-ask() {  # ask "Prompt" "help" [optional]   -> echoes the answer
+# Colors (ANSI); disabled when output is not a terminal.
+if [ -t 2 ]; then
+  C=$'\033[36m'; B=$'\033[1m'; D=$'\033[2m'; Y=$'\033[33m'; G=$'\033[32m'; R=$'\033[0m'
+else C=''; B=''; D=''; Y=''; G=''; R=''; fi
+
+hex()  { openssl rand -hex "$1"; }
+rule() { printf '=%.0s' $(seq 1 "$1"); }
+
+banner() {
+  printf '%s%s\n' "$B" "$C" >&2
+  cat >&2 <<'ART'
+    _   _ _____ ____  __  __ _____ ____
+   | | | | ____|  _ \|  \/  | ____/ ___|
+   | |_| |  _| | |_) | |\/| |  _| \___ \
+   |  _  | |___|  _ <| |  | | |___ ___) |
+   |_| |_|_____|_| \_\_|  |_|_____|____/
+ART
+  local w=52
+  printf '   +%s+\n'    "$(rule $w)"                                            >&2
+  printf '   |%-*s|\n'  "$w" "  self-hosted AI agent  .  Telegram + web on Blaxel" >&2
+  printf '   +%s+\n%s'  "$(rule $w)" "$R"                                        >&2
+}
+
+step() { printf '\n%s%s[%s]%s %s%s%s\n' "$B" "$C" "$1" "$R" "$B" "$2" "$R" >&2; }
+opt()  { printf '     %s%s.%s %s\n' "$B$C" "$1" "$R" "$2" >&2; }
+
+ask() {  # ask "Prompt" "help" [optional]   -> echoes the answer on stdout
   local prompt="$1" help="${2:-}" opt="${3:-}" v=""
-  [ -n "$help" ] && printf '  %s\n' "$help" >&2
+  [ -n "$help" ] && printf '   %s%s%s\n' "$D" "$help" "$R" >&2
   while :; do
-    printf '%s: ' "$prompt" >&2; read -r v
+    printf '   %s%s%s ' "$C" "$prompt" "$R" >&2; read -r v
     [ -n "$v" ] && { printf '%s' "$v"; return; }
     [ -n "$opt" ] && return
-    printf '  (required)\n' >&2
+    printf '   %s(required)%s\n' "$Y" "$R" >&2
   done
 }
 
-printf '\n=== Hermes-on-Blaxel setup ===\n\n'
+banner
 
-# 1. Prerequisites
-[ -z "$BL" ] && { echo "Blaxel CLI 'bl' not found. Install: curl -fsSL https://raw.githubusercontent.com/blaxel-ai/toolkit/main/install.sh | sh"; exit 1; }
-"$BL" workspaces 2>&1 | grep -q '\*' || { echo "Not logged in. Run: bl login"; exit 1; }
-echo "✓ Blaxel CLI ready."
+# Prerequisites
+[ -z "$BL" ] && { printf '%s! Blaxel CLI not found.%s  Install: curl -fsSL https://raw.githubusercontent.com/blaxel-ai/toolkit/main/install.sh | sh\n' "$Y" "$R" >&2; exit 1; }
+"$BL" workspaces 2>&1 | grep -q '\*' || { printf '%s! Not logged in.%s  Run: bl login\n' "$Y" "$R" >&2; exit 1; }
+printf '%s+ Blaxel CLI ready.%s\n' "$G" "$R" >&2
 
-# 2. Reuse existing .env?
+# Reuse existing .env?
 if [ -f "$ENVF" ]; then
-  ANS="$(ask 'Found an existing .env. Re-deploy with it as-is? (y/n)' '' optional)"
+  ANS="$(ask 'Found an existing .env - re-deploy with it as-is? (y/n)' '' optional)"
   case "$ANS" in y*|Y*) exec "$SCRIPTDIR/deploy.sh" ;; esac
-  echo "Re-running the wizard (will overwrite .env)..."
 fi
 
-# 3. Inputs
-printf 'Model provider  [1] Z.AI/GLM  [2] Anthropic  [3] OpenAI  [4] Gemini  [5] configure later in Hermes\n' >&2
-PSEL="$(ask 'Pick a provider (1-5)' 'Not everyone uses Z.AI - or 5 to set it up in the dashboard / hermes setup model after deploy' optional)"
+step "1/6" "Model provider"
+opt 1 "Z.AI / GLM"
+opt 2 "Anthropic (Claude)"
+opt 3 "OpenAI"
+opt 4 "Google Gemini"
+opt 5 "Configure later in Hermes (dashboard / hermes setup model)"
+PSEL="$(ask 'pick >' 'Not everyone uses Z.AI - pick yours, or 5 to set it up after deploy' optional)"
 PROV=""; PROVKEYVAR=""; PROVMODEL=""; PROVKEY=""; PROVBASE=""
 case "$PSEL" in
   2) PROV=anthropic; PROVKEYVAR=ANTHROPIC_API_KEY; PROVMODEL=claude-sonnet-4-6 ;;
@@ -46,19 +73,28 @@ case "$PSEL" in
   *) PROV=zai; PROVKEYVAR=ZAI_API_KEY; PROVMODEL=glm-5.1 ;;
 esac
 if [ -n "$PROV" ]; then
-  PROVKEY="$(ask "$PROV API key" 'Paste your provider key')"
-  M="$(ask "Model name [$PROVMODEL]" '' optional)"; [ -n "$M" ] && PROVMODEL="$M"
-  if [ "$PROV" = zai ]; then CP="$(ask 'Use Z.AI Coding Plan endpoint? (y/n)' '' optional)"; case "$CP" in n*|N*) : ;; *) PROVBASE='https://api.z.ai/api/coding/paas/v4' ;; esac; fi
+  PROVKEY="$(ask "$PROV API key >" 'paste your provider key')"
+  M="$(ask "model name [$PROVMODEL] >" '' optional)"; [ -n "$M" ] && PROVMODEL="$M"
+  if [ "$PROV" = zai ]; then CP="$(ask 'use Z.AI Coding Plan endpoint? (y/n)' '' optional)"; case "$CP" in n*|N*) : ;; *) PROVBASE='https://api.z.ai/api/coding/paas/v4' ;; esac; fi
 fi
-TGTOK="$(ask 'Telegram bot token' 'From @BotFather (123456:ABC...)')"
-TGID="$(ask 'Your Telegram user id' 'From @userinfobot - only this user can chat')"
-WANTDASH="$(ask 'Enable the web dashboard? (y/n)' 'Adds a username/password admin UI' optional)"
-DASHUSER=""; case "$WANTDASH" in y*|Y*) DASHUSER="$(ask '  Dashboard username' '')" ;; esac
-MODEANS="$(ask 'Run mode: [1] always-on (instant, 24/7)  [2] scale-to-zero (cheap, ~1 min wake)' '' optional)"
-case "$MODEANS" in 2) MODE=scale-to-zero ;; *) MODE=always-on ;; esac
-SBX="$(ask 'Sandbox name [hermes-box]' 'Lets you run more than one (e.g. hermes-test)' optional)"; SBX="${SBX:-hermes-box}"
 
-# 4. Generate secrets + write .env
+step "2/6" "Telegram"
+TGTOK="$(ask 'bot token >' 'from @BotFather, like 123456:ABC...')"
+TGID="$(ask 'your user id >' 'from @userinfobot - only this id can chat to the bot')"
+
+step "3/6" "Web dashboard"
+WANTDASH="$(ask 'enable it? (y/n)' 'a username/password admin UI (config, sessions, in-browser chat)' optional)"
+DASHUSER=""; case "$WANTDASH" in y*|Y*) DASHUSER="$(ask 'dashboard username >' '')" ;; esac
+
+step "4/6" "Run mode"
+opt 1 "always-on      (instant replies, runs 24/7)"
+opt 2 "scale-to-zero  (cheap; sleeps when idle, ~1 min wake)"
+MODEANS="$(ask 'pick >' '' optional)"
+case "$MODEANS" in 2) MODE=scale-to-zero ;; *) MODE=always-on ;; esac
+
+step "5/6" "Sandbox name"
+SBX="$(ask 'name [hermes-box] >' 'use a new name to run more than one (e.g. hermes-test)' optional)"; SBX="${SBX:-hermes-box}"
+
 DASHPASS=""; [ -n "$DASHUSER" ] && DASHPASS="$(hex 8)"
 {
   echo "DEPLOY_MODE=$MODE"
@@ -84,30 +120,28 @@ DASHPASS=""; [ -n "$DASHUSER" ] && DASHPASS="$(hex 8)"
     echo "HERMES_DASHBOARD_BASIC_AUTH_SECRET=$(hex 32)"
   fi
 } > "$ENVF"
-echo "✓ Wrote .env (secrets generated)."
+printf '%s+ wrote .env (secrets generated)%s\n' "$G" "$R" >&2
 
-# 5. First deploy
+step "6/6" "Deploy"
+printf '   %sbuilding + deploying - the first build takes a few minutes...%s\n' "$D" "$R" >&2
 "$SCRIPTDIR/deploy.sh"
 
-# 6. Discover webhook URL → wire Telegram → fast redeploy
-echo "▶ Discovering public webhook URL..."
+printf '   %swiring the Telegram webhook...%s\n' "$D" "$R" >&2
 PV="$("$BL" get sandbox "$SBX" preview "$SBX-tg" -o yaml 2>&1)"
 URL="$(printf '%s\n' "$PV" | grep -E '^[[:space:]]*url:' | head -n1 | sed -E 's/.*url:[[:space:]]*//')"
-[ -z "$URL" ] && { echo "Could not read telegram preview URL"; exit 1; }
+[ -z "$URL" ] && { printf '%s! could not read telegram preview URL%s\n' "$Y" "$R" >&2; exit 1; }
 tmp="$(mktemp)"; sed "s#^TELEGRAM_WEBHOOK_URL=.*#TELEGRAM_WEBHOOK_URL=$URL/telegram#" "$ENVF" > "$tmp" && mv "$tmp" "$ENVF"
-echo "  webhook URL = $URL/telegram"
-echo "▶ Re-injecting so the gateway registers the webhook (skip-build)..."
-"$SCRIPTDIR/deploy.sh" --skip-build
+"$SCRIPTDIR/deploy.sh" --skip-build >/dev/null 2>&1
 
-# 7. Summary
 ME="$(curl -s "https://api.telegram.org/bot$TGTOK/getMe" | grep -o '"username":"[^"]*"' | head -n1 | cut -d'"' -f4)"
-printf '\n=== ✅ Done ===\n'
-echo "Telegram bot : @${ME:-your_bot}  - text it (only id $TGID allowed)"
+printf '\n%s%s  HERMES is live%s\n' "$G" "$B" "$R" >&2
+printf '   %sTelegram %s : @%s   (only id %s can chat)\n' "$C" "$R" "${ME:-your_bot}" "$TGID" >&2
 if [ -n "$DASHUSER" ]; then
   DV="$("$BL" get sandbox "$SBX" preview "$SBX-dash" -o yaml 2>&1)"
   DURL="$(printf '%s\n' "$DV" | grep -E '^[[:space:]]*url:' | head -n1 | sed -E 's/.*url:[[:space:]]*//')"
-  echo "Dashboard    : $DURL   login: $DASHUSER / $DASHPASS  (saved in .env)"
+  printf '   %sDashboard%s : %s\n' "$C" "$R" "$DURL" >&2
+  printf '   %sLogin    %s : %s / %s   (saved in .env)\n' "$C" "$R" "$DASHUSER" "$DASHPASS" >&2
 fi
-[ -z "$PROV" ] && { echo "⚠ No model provider set - configure one before the bot can reply:"; echo "   • dashboard → API keys / model, OR"; echo "   • bl connect sandbox $SBX  → then: hermes setup model"; }
-[ "$MODE" = scale-to-zero ] && echo "First message after idle takes ~1 min to wake the box."
-echo
+[ -z "$PROV" ] && printf '   %s! no model provider set - configure via dashboard, or: bl connect sandbox %s  then  hermes setup model%s\n' "$Y" "$SBX" "$R" >&2
+[ "$MODE" = scale-to-zero ] && printf '   %sfirst message after idle takes ~1 min to wake the box%s\n' "$D" "$R" >&2
+printf '\n' >&2
