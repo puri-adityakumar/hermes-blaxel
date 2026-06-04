@@ -15,12 +15,15 @@ param([Parameter(Mandatory)][string]$InFile)
 $ErrorActionPreference = 'Stop'
 $bl  = Join-Path $env:LOCALAPPDATA 'blaxel\bl.exe'
 $tmp = Join-Path $env:TEMP 'hermes-restore-payload.json'
+$sbx = 'hermes-box'
+$envF = Join-Path (Split-Path $PSScriptRoot -Parent) '.env'
+if (Test-Path $envF) { foreach ($l in Get-Content $envF) { if ($l -match '^BLAXEL_SANDBOX_NAME=(.+)$') { $sbx = $matches[1].Trim(); break } } }
 if (-not (Test-Path $InFile)) { throw "Backup file not found: $InFile" }
 
 function Invoke-Box([string]$cmd) {
   $payload = @{ command = $cmd; waitForCompletion = $true } | ConvertTo-Json -Compress
   Set-Content -Path $tmp -Value $payload -Encoding ascii -NoNewline
-  return (& $bl run sandbox hermes-box --path /process --file $tmp 2>&1 | Out-String)
+  return (& $bl run sandbox $sbx --path /process --file $tmp 2>&1 | Out-String)
 }
 
 $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($InFile))

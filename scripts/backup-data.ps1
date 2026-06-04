@@ -15,6 +15,9 @@
 param([string]$OutDir = (Join-Path $PSScriptRoot '..\backups'))
 $ErrorActionPreference = 'Stop'
 $bl = Join-Path $env:LOCALAPPDATA 'blaxel\bl.exe'
+$sbx = 'hermes-box'
+$envF = Join-Path (Split-Path $PSScriptRoot -Parent) '.env'
+if (Test-Path $envF) { foreach ($l in Get-Content $envF) { if ($l -match '^BLAXEL_SANDBOX_NAME=(.+)$') { $sbx = $matches[1].Trim(); break } } }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $ts  = (Get-Date).ToString('yyyyMMdd-HHmmss')
 $out = Join-Path $OutDir "hermes-data-$ts.tar.gz"
@@ -25,7 +28,7 @@ $b64cmd = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($inner))
 $payload = '{"command":"echo ' + $b64cmd + ' | base64 -d | bash","waitForCompletion":true}'
 
 Write-Host "Backing up /root/.hermes data from sandbox..."
-$raw = & $bl run sandbox hermes-box --path /process --data $payload 2>&1 | Out-String
+$raw = & $bl run sandbox $sbx --path /process --data $payload 2>&1 | Out-String
 $obj = $raw | ConvertFrom-Json
 $data = ($obj.stdout, $obj.logs | Where-Object { $_ } | Select-Object -First 1).Trim()
 if (-not $data) { throw "No data returned from sandbox. Raw: $raw" }

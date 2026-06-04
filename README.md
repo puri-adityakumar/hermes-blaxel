@@ -1,11 +1,18 @@
 # Hermes on Blaxel
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![status: beta](https://img.shields.io/badge/status-beta-orange.svg)
+![setup: Windows | macOS | Linux](https://img.shields.io/badge/setup-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)
+
 ![Hermes x Blaxel](assets/banner.png)
 
 Run your own [Hermes Agent](https://github.com/NousResearch/hermes-agent) as a **Telegram bot** (plus an
 optional **web dashboard**) on a [Blaxel](https://blaxel.ai) cloud sandbox. Clone the repo, run one wizard,
 answer a few prompts, and you have a live agent. Bring **any model provider** and choose **always-on** or
 **scale-to-zero**.
+
+> **Status: beta.** The end-to-end flow has only been run lightly so far. Expect rough edges, and please
+> open an issue if something breaks. PRs welcome.
 
 ## Why
 
@@ -76,6 +83,21 @@ deploys and prints everything.
 
 - A Blaxel account (free tier works) · an API key for any provider Hermes supports · a Telegram bot token.
 - Windows (PowerShell) or macOS/Linux (bash + curl + openssl). The sandbox itself is Linux, in the cloud.
+
+## Contributing
+
+Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+
+## Acknowledgements
+
+Built on the [Hermes Agent](https://github.com/NousResearch/hermes-agent) by **Nous Research** and the
+[Blaxel](https://blaxel.ai) sandbox platform. Thanks to both teams for the underlying tools.
+
+## Disclaimer
+
+Unofficial, community project. **Not affiliated with or endorsed by Nous Research or Blaxel.** Provided
+as-is under MIT, with no warranty. You are responsible for your own API keys, costs, and whatever your bot
+says or does.
 
 ## License
 
