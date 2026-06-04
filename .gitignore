@@ -1,0 +1,15 @@
+# Secrets - never commit
+.env
+
+# Local data backups (can be large; contain your sessions/memories)
+backups/
+
+# Logs
+*.log
+
+# Claude Code harness state
+.claude/
+
+# OS / editor noise
+Thumbs.db
+.DS_Store
