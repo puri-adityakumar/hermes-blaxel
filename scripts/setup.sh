@@ -49,7 +49,7 @@ ask() {  # ask "Prompt" "help" [optional]   -> echoes the answer on stdout
   local prompt="$1" help="${2:-}" opt="${3:-}" v=""
   [ -n "$help" ] && printf '   %s%s%s\n' "$D" "$help" "$R" >&2
   while :; do
-    printf '   %s%s%s ' "$C" "$prompt" "$R" >&2; read -r v
+    printf '   %s%s%s ' "$C" "$prompt" "$R" >&2; read -r v; v="${v%$'\r'}"  # strip trailing CR (Git Bash / CRLF terminals)
     [ -n "$v" ] && { printf '%s' "$v"; return; }
     [ -n "$opt" ] && return
     printf '   %s(required)%s\n' "$Y" "$R" >&2
