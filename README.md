@@ -11,8 +11,9 @@ optional **web dashboard**) on a [Blaxel](https://blaxel.ai) cloud sandbox. Clon
 answer a few prompts, and you have a live agent. Bring **any model provider** and choose **always-on** or
 **scale-to-zero**.
 
-> **Status: beta.** The end-to-end flow has only been run lightly so far. Expect rough edges, and please
-> open an issue if something breaks. PRs welcome.
+> **Status: beta.** The deploy + Telegram webhook flow is validated on Git Bash for both run modes
+> (scale-to-zero and always-on); the macOS/Linux and full provider-reply paths are less exercised. Expect
+> rough edges, open an issue if something breaks, and PRs welcome.
 
 ## Why
 
