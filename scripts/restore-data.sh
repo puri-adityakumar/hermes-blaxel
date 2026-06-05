@@ -3,6 +3,9 @@
 # Uploads the archive in ≤90 KB base64 chunks (avoids CLI/arg length limits) via bl run --file.
 #   ./scripts/restore-data.sh ./backups/hermes-data-YYYYMMDD-HHMMSS.tar.gz
 set -uo pipefail
+# Git Bash: stop MSYS rewriting `/process` (a bl API path) into a Windows path for native
+# bl.exe. Ignored on macOS/Linux. (The --file path is handled separately via cygpath below.)
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 INFILE="${1:-}"
 [ -z "$INFILE" ] && { echo "usage: ./scripts/restore-data.sh <backup.tar.gz>"; exit 1; }
 [ -f "$INFILE" ] || { echo "backup not found: $INFILE"; exit 1; }
