@@ -52,15 +52,22 @@ TGPORT="$(get TELEGRAM_WEBHOOK_PORT)"; TGPORT="${TGPORT:-9099}"
 DBPFX="$(get BLAXEL_DASHBOARD_PREFIX)"; DBPFX="${DBPFX:-$DB}"
 DASH_USER="$(get HERMES_DASHBOARD_BASIC_AUTH_USERNAME)"
 
-TGF="$(mktemp)"
-printf 'kind: Preview\nmetadata:\n  name: %s\n  resourceName: %s\nspec:\n  port: %s\n  public: true\n' "$TG" "$SANDBOX" "$TGPORT" > "$TGF"
+# Create previews by piping the manifest to `bl apply -f -` (stdin). Do NOT write a temp
+# file and pass its path: on Git Bash, bl.exe is a native Windows binary that cannot read
+# MSYS (/tmp/...) paths, so the apply would fail silently and no preview would be created.
 "$BL" delete sandbox "$SANDBOX" preview "$TG" >/dev/null 2>&1 || true
-"$BL" apply -f "$TGF" >/dev/null 2>&1 || true
+printf 'kind: Preview\nmetadata:\n  name: %s\n  resourceName: %s\nspec:\n  port: %s\n  public: true\n' "$TG" "$SANDBOX" "$TGPORT" \
+  | "$BL" apply -f - >/dev/null 2>&1 || true
 
 if [ -n "$DASH_USER" ]; then
-  DBF="$(mktemp)"
-  printf 'kind: Preview\nmetadata:\n  name: %s\n  resourceName: %s\nspec:\n  port: 9119\n  public: true\n  prefixUrl: %s\n' "$DB" "$SANDBOX" "$DBPFX" > "$DBF"
   "$BL" delete sandbox "$SANDBOX" preview "$DB" >/dev/null 2>&1 || true
-  "$BL" apply -f "$DBF" >/dev/null 2>&1 || true
+  printf 'kind: Preview\nmetadata:\n  name: %s\n  resourceName: %s\nspec:\n  port: 9119\n  public: true\n  prefixUrl: %s\n' "$DB" "$SANDBOX" "$DBPFX" \
+    | "$BL" apply -f - >/dev/null 2>&1 || true
 fi
-echo "✓ Deployed and re-bound. Text the bot / open the dashboard to verify."
+
+# Verify the telegram preview actually came up (the apply above is best-effort/silenced).
+if ! "$BL" get sandbox "$SANDBOX" preview "$TG" -o yaml 2>/dev/null | grep -qE '^[[:space:]]*url:'; then
+  echo "x Telegram preview '$TG' (port $TGPORT) was not created. Check: bl get sandbox $SANDBOX preview" >&2
+  exit 1
+fi
+echo "+ Deployed and re-bound. Text the bot / open the dashboard to verify."

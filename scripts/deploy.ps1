@@ -77,6 +77,9 @@ try {
     & $bl delete sandbox $sandbox preview $db 2>&1 | Out-Null
     & $bl apply -f $dbF 2>&1 | Out-Null
   }
+  # Verify the telegram preview actually came up (apply above is best-effort/silenced).
+  $pv = (& $bl get sandbox $sandbox preview $tg -o yaml 2>&1 | Out-String)
+  if ($pv -notmatch '(?m)^\s*url:\s*\S') { throw "Telegram preview '$tg' (port $tgPort) was not created. Check: bl get sandbox $sandbox preview" }
   Write-Host "✓ Deployed and re-bound. Text the bot / open the dashboard to verify."
 }
 finally { Pop-Location }
