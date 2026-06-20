@@ -11,10 +11,7 @@ Thanks for your interest. This is a small community project; issues and PRs are 
 
 ## Before opening a PR
 
-- Keep the PowerShell (`.ps1`) and bash (`.sh`) scripts **in sync** (same behavior on both platforms).
-- Syntax-check before pushing:
-  - bash: `bash -n scripts/*.sh` (and `shellcheck scripts/*.sh` if you have it).
-  - PowerShell: parse with `[System.Management.Automation.Language.Parser]::ParseFile(...)`, or PSScriptAnalyzer.
+- Syntax-check before pushing: `bash -n scripts/*.sh` (and `shellcheck scripts/*.sh` if you have it).
 - Update the README / CLAUDE.md if you change behavior.
 
 ## Repo rules

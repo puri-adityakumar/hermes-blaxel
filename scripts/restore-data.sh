@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restore Hermes runtime data into the sandbox from a local backup. Mirrors restore-data.ps1.
+# Restore Hermes runtime data into the sandbox from a local backup.
 # Uploads the archive in ≤90 KB base64 chunks (avoids CLI/arg length limits) via bl run --file.
 #   ./scripts/restore-data.sh ./backups/hermes-data-YYYYMMDD-HHMMSS.tar.gz
 set -uo pipefail

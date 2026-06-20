@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy (or redeploy) the Hermes sandbox from .env - Mac/Linux. Mirrors deploy.ps1.
+# Deploy (or redeploy) the Hermes sandbox from .env. Mac/Linux, or Windows via Git Bash / WSL.
 #   ./scripts/deploy.sh              # full build + deploy + rebind previews
 #   ./scripts/deploy.sh --skip-build # config-only (faster; restarts container)
 # ⚠ A full rebuild WIPES /root/.hermes runtime data (free tier, no volume) - run
@@ -46,8 +46,8 @@ done
 [ -n "$ok" ] || { echo "Timed out waiting for DEPLOYED"; exit 1; }
 
 echo "▶ Re-binding previews (generated from .env for '$SANDBOX')..."
-TG="$(get BLAXEL_TELEGRAM_PREVIEW)";  TG="${TG:-porttest2}"
-DB="$(get BLAXEL_DASHBOARD_PREVIEW)"; DB="${DB:-dashboard}"
+TG="$(get BLAXEL_TELEGRAM_PREVIEW)"
+DB="$(get BLAXEL_DASHBOARD_PREVIEW)"; DB="${DB:-$SANDBOX-dash}"
 TGPORT="$(get TELEGRAM_WEBHOOK_PORT)"; TGPORT="${TGPORT:-9099}"
 DBPFX="$(get BLAXEL_DASHBOARD_PREFIX)"; DBPFX="${DBPFX:-$DB}"
 DASH_USER="$(get HERMES_DASHBOARD_BASIC_AUTH_USERNAME)"
@@ -55,9 +55,11 @@ DASH_USER="$(get HERMES_DASHBOARD_BASIC_AUTH_USERNAME)"
 # Create previews by piping the manifest to `bl apply -f -` (stdin). Do NOT write a temp
 # file and pass its path: on Git Bash, bl.exe is a native Windows binary that cannot read
 # MSYS (/tmp/...) paths, so the apply would fail silently and no preview would be created.
-"$BL" delete sandbox "$SANDBOX" preview "$TG" >/dev/null 2>&1 || true
-printf 'kind: Preview\nmetadata:\n  name: %s\n  resourceName: %s\nspec:\n  port: %s\n  public: true\n' "$TG" "$SANDBOX" "$TGPORT" \
-  | "$BL" apply -f - >/dev/null 2>&1 || true
+if [ -n "$TG" ]; then
+  "$BL" delete sandbox "$SANDBOX" preview "$TG" >/dev/null 2>&1 || true
+  printf 'kind: Preview\nmetadata:\n  name: %s\n  resourceName: %s\nspec:\n  port: %s\n  public: true\n' "$TG" "$SANDBOX" "$TGPORT" \
+    | "$BL" apply -f - >/dev/null 2>&1 || true
+fi
 
 if [ -n "$DASH_USER" ]; then
   "$BL" delete sandbox "$SANDBOX" preview "$DB" >/dev/null 2>&1 || true
@@ -65,9 +67,11 @@ if [ -n "$DASH_USER" ]; then
     | "$BL" apply -f - >/dev/null 2>&1 || true
 fi
 
-# Verify the telegram preview actually came up (the apply above is best-effort/silenced).
-if ! "$BL" get sandbox "$SANDBOX" preview "$TG" -o yaml 2>/dev/null | grep -qE '^[[:space:]]*url:'; then
-  echo "x Telegram preview '$TG' (port $TGPORT) was not created. Check: bl get sandbox $SANDBOX preview" >&2
-  exit 1
+if [ -n "$TG" ]; then
+  # Verify the telegram preview actually came up (the apply above is best-effort/silenced).
+  if ! "$BL" get sandbox "$SANDBOX" preview "$TG" -o yaml 2>/dev/null | grep -qE '^[[:space:]]*url:'; then
+    echo "x Telegram preview '$TG' (port $TGPORT) was not created. Check: bl get sandbox $SANDBOX preview" >&2
+    exit 1
+  fi
 fi
 echo "+ Deployed and re-bound. Text the bot / open the dashboard to verify."

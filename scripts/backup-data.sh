@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Back up Hermes runtime data (/root/.hermes) from the sandbox to a local file. Mirrors
-# backup-data.ps1. Run BEFORE a full rebuild (free tier wipes the overlay); restore after.
+# Back up Hermes runtime data (/root/.hermes) from the sandbox to a local file.
+# Run BEFORE a full rebuild (free tier wipes the overlay); restore after.
 #   ./scripts/backup-data.sh
 set -uo pipefail
 # Git Bash: stop MSYS rewriting `/process` (a bl API path, not a file path) into a Windows

@@ -1,5 +1,4 @@
 # Normalize line endings. Shell scripts MUST stay LF or they break on macOS/Linux
-# (`/usr/bin/env: bash\r`). PowerShell scripts use CRLF (Windows).
+# and on Windows Git Bash (`/usr/bin/env: bash\r`).
 * text=auto
 *.sh   text eol=lf
-*.ps1  text eol=crlf

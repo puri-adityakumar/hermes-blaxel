@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermes-on-Blaxel setup wizard (Mac/Linux). Mirrors setup.ps1.
+# Hermes-on-Blaxel setup wizard. Mac/Linux native, or Windows via Git Bash / WSL.
 # Clone, run this, answer a few prompts, get a live Telegram bot (+ optional dashboard).
 set -uo pipefail
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
@@ -9,37 +9,34 @@ BL="$(command -v bl || true)"
 
 # Colors (ANSI); disabled when output is not a terminal.
 if [ -t 2 ]; then
-  C=$'\033[36m'; B=$'\033[1m'; D=$'\033[2m'; Y=$'\033[33m'; G=$'\033[32m'; R=$'\033[0m'
-  GREEN=$'\033[38;5;28m'; ORANGE=$'\033[38;5;208m'
+  C=$'\033[36m'; B=$'\033[1m'; D=$'\033[2m'; Y=$'\033[33m'; G=$'\033[32m'; R=$'\033[0m'; GREEN=$'\033[38;5;40m'; ORANGE=$'\033[38;5;208m'
 else C=''; B=''; D=''; Y=''; G=''; R=''; GREEN=''; ORANGE=''; fi
 
-hex()  { openssl rand -hex "$1"; }
-rule() { printf '=%.0s' $(seq 1 "$1"); }
+hex() { openssl rand -hex "$1"; }
 
 banner() {
-  local H=(
-' _   _ _____ ____  __  __ _____ ____'
-'| | | | ____|  _ \|  \/  | ____/ ___|'
-'| |_| |  _| | |_) | |\/| |  _| \___ \'
-'|  _  | |___|  _ <| |  | | |___ ___) |'
-'|_| |_|_____|_| \_\_|  |_|_____|____/'
-)
-  local X=(
-' ____  _        _    __  __ _____ _'
-'| __ )| |      / \  \ \/ /| ____| |'
-'|  _ \| |     / _ \  \  / |  _| | |'
-'| |_) | |___ / ___ \ /  \ | |___| |___'
-'|____/|_____/_/   \_\_/\_\|_____|_____|'
-)
-  local sep=('   ' '   ' ' x ' '   ' '   ') i
+  local h1=' _   _ _____ ____  __  __ _____ ____'
+  local h2='| | | | ____|  _ \  \/  | ____/ ___|'
+  local h3='| |_| |  _| | |_) | |\/| |  _| \___ \'
+  local h4='|  _  | |___|  _ <| |  | | |___ ___) |'
+  local h5='|_| |_|_____|_| \_\_|  |_|_____|____/'
+  local b1=' ____  _        _    __  __ _____ _'
+  local b2='| __ )| |      / \  \ \/ /| ____| |'
+  local b3='|  _ \| |     / _ \  \  / |  _| | |'
+  local b4='| |_) | |___ / ___ \ /  \ | |___| |___'
+  local b5='|____/|_____/_/   \_\_/\_\|_____|_____|'
   printf '\n' >&2
-  for i in 0 1 2 3 4; do
-    printf '   %s%s%-38s%s%s%s%s%s%s%s\n' "$B" "$GREEN" "${H[$i]}" "$R" "$D" "${sep[$i]}" "$R" "$B$ORANGE" "${X[$i]}" "$R" >&2
-  done
-  local w=52
-  printf '%s   +%s+\n'   "$C" "$(rule $w)"                                       >&2
-  printf '   |%-*s|\n'   "$w" "  self-hosted AI agent  .  Telegram + web on Blaxel" >&2
-  printf '   +%s+\n%s'   "$(rule $w)" "$R"                                       >&2
+  printf '   %s%-38s%s   %s%s%s\n' "$GREEN" "$h1" "$R" "$ORANGE" "$b1" "$R" >&2
+  printf '   %s%-38s%s   %s%s%s\n' "$GREEN" "$h2" "$R" "$ORANGE" "$b2" "$R" >&2
+  printf '   %s%-38s%s %sx%s %s%s%s\n' "$GREEN" "$h3" "$R" "$D" "$R" "$ORANGE" "$b3" "$R" >&2
+  printf '   %s%-38s%s   %s%s%s\n' "$GREEN" "$h4" "$R" "$ORANGE" "$b4" "$R" >&2
+  printf '   %s%-38s%s   %s%s%s\n' "$GREEN" "$h5" "$R" "$ORANGE" "$b5" "$R" >&2
+  printf '\n' >&2
+  local sub='self-hosted autonomous agent on a managed sandbox'
+  local bar; bar="$(printf '%*s' "$(( ${#sub} + 3 ))" '' | tr ' ' '=')"
+  printf '   %s+%s+%s\n' "$C" "$bar" "$R" >&2
+  printf '   %s|%s  %s %s|%s\n' "$C" "$R" "$sub" "$C" "$R" >&2
+  printf '   %s+%s+%s\n\n' "$C" "$bar" "$R" >&2
 }
 
 step() { printf '\n%s%s[%s]%s %s%s%s\n' "$B" "$C" "$1" "$R" "$B" "$2" "$R" >&2; }
@@ -59,7 +56,19 @@ ask() {  # ask "Prompt" "help" [optional]   -> echoes the answer on stdout
 banner
 
 # Prerequisites
-[ -z "$BL" ] && { printf '%s! Blaxel CLI not found.%s  Install: curl -fsSL https://raw.githubusercontent.com/blaxel-ai/toolkit/main/install.sh | sh\n' "$Y" "$R" >&2; exit 1; }
+if [ -z "$BL" ]; then
+  printf '%s! Blaxel CLI not found.%s\n' "$Y" "$R" >&2
+  ANS="$(ask 'install it now? (y/n)' '' optional)"
+  case "$ANS" in
+    y*|Y*)
+      printf '   %sinstalling...%s\n' "$D" "$R" >&2
+      curl -fsSL https://raw.githubusercontent.com/blaxel-ai/toolkit/main/install.sh | sh || { printf '%s! install failed%s\n' "$Y" "$R" >&2; exit 1; }
+      BL="$(command -v bl || true)"
+      [ -z "$BL" ] && { printf '%s! installed but not on PATH - open a new shell and re-run%s\n' "$Y" "$R" >&2; exit 1; }
+      ;;
+    *) exit 1 ;;
+  esac
+fi
 "$BL" workspaces 2>&1 | grep -q '\*' || { printf '%s! Not logged in.%s  Run: bl login\n' "$Y" "$R" >&2; exit 1; }
 printf '%s+ Blaxel CLI ready.%s\n' "$G" "$R" >&2
 
@@ -75,7 +84,7 @@ opt 2 "Anthropic (Claude)"
 opt 3 "OpenAI"
 opt 4 "Google Gemini"
 opt 5 "Configure later in Hermes (dashboard / hermes setup model)"
-PSEL="$(ask 'pick >' 'Not everyone uses Z.AI - pick yours, or 5 to set it up after deploy' optional)"
+PSEL="$(ask 'pick >' '' optional)"
 PROV=""; PROVKEYVAR=""; PROVMODEL=""; PROVKEY=""; PROVBASE=""
 case "$PSEL" in
   2) PROV=anthropic; PROVKEYVAR=ANTHROPIC_API_KEY; PROVMODEL=claude-sonnet-4-6 ;;
@@ -90,9 +99,21 @@ if [ -n "$PROV" ]; then
   if [ "$PROV" = zai ]; then CP="$(ask 'use Z.AI Coding Plan endpoint? (y/n)' '' optional)"; case "$CP" in n*|N*) : ;; *) PROVBASE='https://api.z.ai/api/coding/paas/v4' ;; esac; fi
 fi
 
-step "2/6" "Telegram"
-TGTOK="$(ask 'bot token >' 'from @BotFather, like 123456:ABC...')"
-TGID="$(ask 'your user id >' 'from @userinfobot - only this id can chat to the bot')"
+step "2/6" "Messaging platform"
+opt 1 "Telegram"
+opt 2 "Discord"
+opt 3 "Set up later (dashboard / hermes gateway setup)"
+CSEL="$(ask 'pick >' '' optional)"
+CHANNEL=""; TGTOK=""; TGID=""; DTOK=""; DID=""
+case "$CSEL" in
+  1) CHANNEL=telegram
+     TGTOK="$(ask 'bot token >' 'from @BotFather, like 123456:ABC...')"
+     TGID="$(ask 'your user id >' 'from @userinfobot - only this id can chat to the bot')" ;;
+  2) CHANNEL=discord
+     DTOK="$(ask 'bot token >' 'from the Discord Developer Portal - Bot page')"
+     DID="$(ask 'your user id >' 'Developer Mode on, right-click yourself - Copy User ID')" ;;
+  *) CHANNEL="" ;;
+esac
 
 step "3/6" "Web dashboard"
 WANTDASH="$(ask 'enable it? (y/n)' 'a username/password admin UI (config, sessions, in-browser chat)' optional)"
@@ -110,14 +131,19 @@ SBX="$(ask 'name [hermes-box] >' 'use a new name to run more than one (e.g. herm
 DASHPASS=""; [ -n "$DASHUSER" ] && DASHPASS="$(hex 8)"
 {
   echo "DEPLOY_MODE=$MODE"
-  echo "TELEGRAM_BOT_TOKEN=$TGTOK"
-  echo "TELEGRAM_WEBHOOK_URL="
-  echo "TELEGRAM_WEBHOOK_SECRET=$(hex 32)"
-  echo "TELEGRAM_WEBHOOK_PORT=9099"
-  echo "TELEGRAM_ALLOWED_USERS=$TGID"
-  echo "TELEGRAM_HOME_CHANNEL=$TGID"
+  if [ "$CHANNEL" = telegram ]; then
+    echo "TELEGRAM_BOT_TOKEN=$TGTOK"
+    echo "TELEGRAM_WEBHOOK_URL="
+    echo "TELEGRAM_WEBHOOK_SECRET=$(hex 32)"
+    echo "TELEGRAM_WEBHOOK_PORT=9099"
+    echo "TELEGRAM_ALLOWED_USERS=$TGID"
+    echo "TELEGRAM_HOME_CHANNEL=$TGID"
+    echo "BLAXEL_TELEGRAM_PREVIEW=$SBX-tg"
+  elif [ "$CHANNEL" = discord ]; then
+    echo "DISCORD_BOT_TOKEN=$DTOK"
+    echo "DISCORD_ALLOWED_USERS=$DID"
+  fi
   echo "BLAXEL_SANDBOX_NAME=$SBX"
-  echo "BLAXEL_TELEGRAM_PREVIEW=$SBX-tg"
   echo "BLAXEL_DASHBOARD_PREVIEW=$SBX-dash"
   echo "BLAXEL_DASHBOARD_PREFIX=$SBX-dash"
   if [ -n "$PROV" ]; then
@@ -138,16 +164,26 @@ step "6/6" "Deploy"
 printf '   %sbuilding + deploying - the first build takes a few minutes...%s\n' "$D" "$R" >&2
 "$SCRIPTDIR/deploy.sh"
 
-printf '   %swiring the Telegram webhook...%s\n' "$D" "$R" >&2
-PV="$("$BL" get sandbox "$SBX" preview "$SBX-tg" -o yaml 2>&1)"
-URL="$(printf '%s\n' "$PV" | grep -E '^[[:space:]]*url:' | head -n1 | sed -E 's/.*url:[[:space:]]*//')"
-[ -z "$URL" ] && { printf '%s! could not read telegram preview URL%s\n' "$Y" "$R" >&2; exit 1; }
-tmp="$(mktemp)"; sed "s#^TELEGRAM_WEBHOOK_URL=.*#TELEGRAM_WEBHOOK_URL=$URL/telegram#" "$ENVF" > "$tmp" && mv "$tmp" "$ENVF"
-"$SCRIPTDIR/deploy.sh" --skip-build >/dev/null 2>&1
+if [ "$CHANNEL" = telegram ]; then
+  printf '   %swiring the Telegram webhook...%s\n' "$D" "$R" >&2
+  PV="$("$BL" get sandbox "$SBX" preview "$SBX-tg" -o yaml 2>&1)"
+  URL="$(printf '%s\n' "$PV" | grep -E '^[[:space:]]*url:' | head -n1 | sed -E 's/.*url:[[:space:]]*//')"
+  [ -z "$URL" ] && { printf '%s! could not read telegram preview URL%s\n' "$Y" "$R" >&2; exit 1; }
+  tmp="$(mktemp)"; sed "s#^TELEGRAM_WEBHOOK_URL=.*#TELEGRAM_WEBHOOK_URL=$URL/telegram#" "$ENVF" > "$tmp" && mv "$tmp" "$ENVF"
+  "$SCRIPTDIR/deploy.sh" --skip-build >/dev/null 2>&1
+fi
 
-ME="$(curl -s "https://api.telegram.org/bot$TGTOK/getMe" | grep -o '"username":"[^"]*"' | head -n1 | cut -d'"' -f4)"
 printf '\n%s%s  HERMES is live%s\n' "$G" "$B" "$R" >&2
-printf '   %sTelegram %s : @%s   (only id %s can chat)\n' "$C" "$R" "${ME:-your_bot}" "$TGID" >&2
+case "$CHANNEL" in
+  telegram)
+    ME="$(curl -s "https://api.telegram.org/bot$TGTOK/getMe" | grep -o '"username":"[^"]*"' | head -n1 | cut -d'"' -f4)"
+    printf '   %sTelegram %s : @%s   (only id %s can chat)\n' "$C" "$R" "${ME:-your_bot}" "$TGID" >&2 ;;
+  discord)
+    DME="$(curl -s -H "Authorization: Bot $DTOK" https://discord.com/api/v10/users/@me | grep -o '"username":"[^"]*"' | head -n1 | cut -d'"' -f4)"
+    printf '   %sDiscord  %s : %s   (only id %s can chat - DM or @mention in a server)\n' "$C" "$R" "${DME:-your_bot}" "$DID" >&2 ;;
+  *)
+    printf '   %s! no messaging platform set - configure via dashboard, or: bl connect sandbox %s  then  hermes gateway setup%s\n' "$Y" "$SBX" "$R" >&2 ;;
+esac
 if [ -n "$DASHUSER" ]; then
   DV="$("$BL" get sandbox "$SBX" preview "$SBX-dash" -o yaml 2>&1)"
   DURL="$(printf '%s\n' "$DV" | grep -E '^[[:space:]]*url:' | head -n1 | sed -E 's/.*url:[[:space:]]*//')"

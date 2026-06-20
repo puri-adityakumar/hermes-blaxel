@@ -3,4 +3,4 @@ build:
 
 run:
 	docker rm -f blaxel-sandbox-scratch || true
-	docker run --platform=linux/amd64 -p 8080:8080 -p 3000:3000 --name blaxel-sandbox-scratch blaxel-sandbox-scratch
+	docker run --platform=linux/amd64 -p 8080:8080 --name blaxel-sandbox-scratch blaxel-sandbox-scratch
