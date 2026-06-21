@@ -10,6 +10,9 @@ backups/
 # Claude Code harness state
 .claude/
 
+# Session handover notes (not project docs)
+HANDOVER.md
+
 # Playwright MCP scratch (used only to render the README banner screenshot)
 .playwright-mcp/
 
