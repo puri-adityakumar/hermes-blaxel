@@ -78,7 +78,7 @@ if [ -f "$ENVF" ]; then
   case "$ANS" in y*|Y*) exec "$SCRIPTDIR/deploy.sh" ;; esac
 fi
 
-step "1/6" "Model provider"
+step "1/5" "Model provider"
 opt 1 "Z.AI / GLM"
 opt 2 "Anthropic (Claude)"
 opt 3 "OpenAI"
@@ -99,7 +99,7 @@ if [ -n "$PROV" ]; then
   if [ "$PROV" = zai ]; then CP="$(ask 'use Z.AI Coding Plan endpoint? (y/n)' '' optional)"; case "$CP" in n*|N*) : ;; *) PROVBASE='https://api.z.ai/api/coding/paas/v4' ;; esac; fi
 fi
 
-step "2/6" "Messaging platform"
+step "2/5" "Messaging platform"
 opt 1 "Telegram"
 opt 2 "Discord"
 opt 3 "Set up later (dashboard / hermes gateway setup)"
@@ -115,22 +115,16 @@ case "$CSEL" in
   *) CHANNEL="" ;;
 esac
 
-step "3/6" "Web dashboard"
+step "3/5" "Web dashboard"
 WANTDASH="$(ask 'enable it? (y/n)' 'a username/password admin UI (config, sessions, in-browser chat)' optional)"
 DASHUSER=""; case "$WANTDASH" in y*|Y*) DASHUSER="$(ask 'dashboard username >' '')" ;; esac
 
-step "4/6" "Run mode"
-opt 1 "always-on      (instant replies, runs 24/7)"
-opt 2 "scale-to-zero  (cheap; sleeps when idle, ~1 min wake)"
-MODEANS="$(ask 'pick >' '' optional)"
-case "$MODEANS" in 2) MODE=scale-to-zero ;; *) MODE=always-on ;; esac
-
-step "5/6" "Sandbox name"
+step "4/5" "Sandbox name"
 SBX="$(ask 'name [hermes-box] >' 'use a new name to run more than one (e.g. hermes-test)' optional)"; SBX="${SBX:-hermes-box}"
 
 DASHPASS=""; [ -n "$DASHUSER" ] && DASHPASS="$(hex 8)"
 {
-  echo "DEPLOY_MODE=$MODE"
+  echo "DEPLOY_MODE=always-on"
   if [ "$CHANNEL" = telegram ]; then
     echo "TELEGRAM_BOT_TOKEN=$TGTOK"
     echo "TELEGRAM_WEBHOOK_URL="
@@ -160,7 +154,7 @@ DASHPASS=""; [ -n "$DASHUSER" ] && DASHPASS="$(hex 8)"
 } > "$ENVF"
 printf '%s+ wrote .env (secrets generated)%s\n' "$G" "$R" >&2
 
-step "6/6" "Deploy"
+step "5/5" "Deploy"
 printf '   %sbuilding + deploying - the first build takes a few minutes...%s\n' "$D" "$R" >&2
 "$SCRIPTDIR/deploy.sh"
 
@@ -191,5 +185,4 @@ if [ -n "$DASHUSER" ]; then
   printf '   %sLogin    %s : %s / %s   (saved in .env)\n' "$C" "$R" "$DASHUSER" "$DASHPASS" >&2
 fi
 [ -z "$PROV" ] && printf '   %s! no model provider set - configure via dashboard, or: bl connect sandbox %s  then  hermes setup model%s\n' "$Y" "$SBX" "$R" >&2
-[ "$MODE" = scale-to-zero ] && printf '   %sfirst message after idle takes ~1 min to wake the box%s\n' "$D" "$R" >&2
 printf '\n' >&2

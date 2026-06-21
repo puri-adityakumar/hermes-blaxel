@@ -42,12 +42,9 @@ chmod +x scripts/*.sh   # Windows: run in Git Bash or WSL
 
 The wizard asks for: **model provider + key** (or "configure later"), **messaging platform** (Telegram / Discord / later), optional **dashboard**, and **run mode**. It deploys and prints your bot + dashboard link.
 
-## Deployment modes
+## Deployment mode
 
-| Mode | Behavior | Cost |
-|---|---|---|
-| **always-on** | Runs 24/7, instant replies | continuous |
-| **scale-to-zero** | Sleeps ~15 min idle, wakes on a message (~1 min cold start) | ~zero when idle |
+The agent runs **always-on** (24/7) so the gateway stays connected to your messaging platform and replies instantly. Scale-to-zero isn't supported: Blaxel standby resumes only on an **incoming** edge connection, but Discord is **outbound** (the gateway holds the websocket to Discord) and can't wake a suspended box. ([#1](https://github.com/puri-adityakumar/hermes-blaxel/issues/1))
 
 ## Day-to-day
 

@@ -18,17 +18,14 @@ the sandbox; it sleeps when idle (cheap). The repo is meant to be **clone → `.
 ## Architecture (one line)
 Telegram msg → Telegram servers (retry on failure) → Blaxel edge/preview (wakes box) → **Hermes gateway :9099** (auth-checks the user, calls GLM) → reply.
 
-## Deployment modes (`DEPLOY_MODE` in `.env`)
+## Deployment mode (`DEPLOY_MODE` in `.env`)
 The gateway/dashboard are launched via the Blaxel **process API**, which has two relevant knobs the entrypoint sets:
 - **`timeout`** - default **600 s (10 min)**, after which the process is **killed**. We always pass **`timeout: 0`** (indefinite) - without it the gateway/dashboard die every 10 min (the supervision loop relaunches them, but that's a ~10-15 s outage each cycle).
-- **`keepAlive`** - `true` **prevents Blaxel standby** (always-on); `false` lets the box suspend when idle.
+- **`keepAlive`** - we always set **`true`** (always-on).
 
-| `DEPLOY_MODE` | keepAlive | Behavior | Cost |
-|---|---|---|---|
-| `always-on` (default) | `true` | Box runs 24/7, instant replies, no outage cycle | continuous |
-| `scale-to-zero` | `false` | Box suspends after ~15 min idle, wakes on a message (~1 min cold start) | ~zero when idle |
+**`DEPLOY_MODE=always-on`** (the only supported value). Box runs 24/7, gateway stays connected, instant replies, continuous cost.
 
-The supervision loop is the safety net in both modes (relaunches on resume in scale-to-zero, or after any crash in always-on).
+> **Scale-to-zero was removed** (GH issue #1). Reason: Blaxel standby resumes only on an **incoming** edge connection; Discord is **outbound** (the gateway holds the websocket to Discord) and a sleeping box would miss every message. Telegram's inbound webhook *could* wake a suspended box, but the multi-channel gateway needs the box awake to hold its outbound sockets, so always-on is required. The entrypoint still reads `DEPLOY_MODE` defensively but hardcodes `KEEPALIVE=true`. The supervision loop remains as a crash safety net.
 
 ## Repo layout
 ```

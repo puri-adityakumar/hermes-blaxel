@@ -5,7 +5,7 @@
 #  - Webhook/dashboard ports must be edge-routable → both are launched THROUGH the
 #    sandbox process API (curl localhost:8080/process), never directly.
 #  - Processes launched via the process API are killed by its default 600s timeout
-#    (we pass timeout:0 to disable that) and by suspend in scale-to-zero mode. PID 1
+#    (we pass timeout:0 to disable that). PID 1 (this script) survives, so the
 #    (this script) survives both, so the supervision loop relaunches whatever died.
 #  - The lock dir is tmpfs but is restored from the RAM snapshot on resume, so a
 #    stale lock can persist → start_gateway() clears it before every (re)launch.
@@ -16,13 +16,11 @@ export PATH="/root/.local/bin:/usr/local/bin:$PATH"
 export HERMES_ACCEPT_HOOKS=1
 export HERMES_GATEWAY_LOCK_DIR=/dev/shm/hglock
 DASH_PORT="${HERMES_DASHBOARD_PORT:-9119}"
-# Deployment mode (see CLAUDE.md "Deployment modes"):
-#   always-on      → keepAlive=true  → Blaxel never auto-suspends the box (instant, costs 24/7)
-#   scale-to-zero  → keepAlive=false → box suspends after ~15 min idle, wakes on a message (cheap)
-# Either way the process API's `timeout` is set to 0 below, which disables its default
-# 600s (10-min) process kill - without that the gateway/dashboard die every 10 min.
-DEPLOY_MODE="${DEPLOY_MODE:-always-on}"
-if [ "$DEPLOY_MODE" = "scale-to-zero" ]; then KEEPALIVE=false; else KEEPALIVE=true; fi
+# Deployment mode: always-on only. (Scale-to-zero was removed - see CLAUDE.md and
+# GH issue: an outbound platform like Discord can't wake a suspended box, since Blaxel
+# standby resumes only on an INCOMING edge connection. Telegram's webhook could, but the
+# multi-channel gateway needs the box awake to hold its outbound sockets.)
+KEEPALIVE=true
 mkdir -p /root/.hermes/logs /dev/shm/hglock
 rm -f /root/.hermes/gateway.lock 2>/dev/null || true
 
@@ -109,21 +107,32 @@ start_dashboard() {
   echo "[$(date -u +%FT%TZ)] start_dashboard issued (:${DASH_PORT})" >> /root/.hermes/logs/gw-boot.log
 }
 
+# Channel-agnostic liveness: is a `hermes gateway run` process alive? Telegram
+# binds :9099 (older revs probed that port), but Discord is OUTBOUND-only and
+# binds no port - so a :9099 probe would respawn Discord gateways forever.
+gateway_alive() {
+  local c
+  for f in /proc/[0-9]*/cmdline; do
+    c=$(tr '\0' ' ' < "$f" 2>/dev/null) || continue
+    case "$c" in *"hermes gateway run"*) return 0 ;; esac
+  done
+  return 1
+}
+
 # Initial launch on cold boot.
 start_gateway
 [ -n "$HERMES_DASHBOARD_SESSION_TOKEN" ] && start_dashboard
 
-# Supervise forever. PID 1 survives suspend/resume, so this loop brings services back
-# after every wake (scale-to-zero) or crash (always-on). Checks are cheap loopback nc
-# probes; relaunch only when a port is unbound (double-checked against transient misses).
-# Loopback probes don't count as Blaxel "incoming connections", so they don't block
-# standby in scale-to-zero mode.
+# Supervise forever. PID 1 survives resume/crash, so this loop brings services back
+# after any crash. The gateway check is process-based (gateway_alive, above) so it works
+# for both Telegram (inbound :9099) and Discord (outbound, no port). The dashboard check
+# stays a port probe since the dashboard always binds :9119.
 while true; do
   sleep 5
-  if ! nc -z 127.0.0.1 9099 2>/dev/null; then
+  if ! gateway_alive; then
     sleep 2
-    if ! nc -z 127.0.0.1 9099 2>/dev/null; then
-      echo "[$(date -u +%FT%TZ)] :9099 unbound - relaunching gateway" >> /root/.hermes/logs/gw-boot.log
+    if ! gateway_alive; then
+      echo "[$(date -u +%FT%TZ)] gateway not running - relaunching" >> /root/.hermes/logs/gw-boot.log
       start_gateway; sleep 12
     fi
   fi
