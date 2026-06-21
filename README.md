@@ -1,5 +1,10 @@
 # Hermes on Blaxel
 
+> **DEPRECATED - legacy branch.** This `legacy-code` branch is the original version
+> (Telegram-only, dual PowerShell + bash scripts, optional scale-to-zero) and is **no longer
+> maintained**. Active development has moved to the **`main`** branch: multi-channel
+> (Telegram + Discord), always-on, single bash codebase. Use `main` for any new deployment.
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 ![status: beta](https://img.shields.io/badge/status-beta-orange.svg)
 ![setup: Windows | macOS | Linux](https://img.shields.io/badge/setup-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)
